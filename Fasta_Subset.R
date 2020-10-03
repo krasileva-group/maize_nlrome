@@ -51,4 +51,5 @@ rm(subset,a,b,c)
 getwd()
 My_Genes %>% distinct()
 
+
 writeXStringSet(All_NLR,"../NLRome/Zm_NBARC_Hits_P001.fasta")
