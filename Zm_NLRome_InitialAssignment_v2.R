@@ -13,8 +13,8 @@
 ##
 ## ---------------------------
 ##
-## Notes:
-##   
+## Notes: Take one tree (unrooted) from RAxML, min_tips and max_tips parameters and produce an annotation for iTOL with 
+##        the proposed split. Extra points for mouse over with clade info, color coded bootstrap values.
 ##
 ## ---------------------------
 ## load packages
@@ -25,18 +25,20 @@
 #BiocManager::install("ggtree")
 #BiocManager::install("treeio")
 #BiocManager::install("tidytree")
-#install.packages("tidyverse")
+install.packages("tidyverse")
+install.packages("phangorn")
 
 library("tidyverse")
 library("ggtree")
 library("treeio")
 library("tidytree")
+library("phangorn")
 
 '%ni%' <- Negate('%in%')
 setwd("~/Dropbox/NLRomes/Maize_NLRome/NLRome/")
 
 ########Import RAXML tree---------------
-raxml <- read.raxml("RAxML_bipartitionsBranchLabels.Raxml.out")
+raxml <- read.raxml("RAxML_bipartitionsBranchLabels.ZMonly.100.Raxml.out")
 y <- as_tibble(raxml)
 which(!is.na(y$label)) 
 ########Annotate Internal Nodes and save Bootstrap values---------------
@@ -44,10 +46,10 @@ z <- mutate(y, label=if_else(is.na(label),paste0("Int",node),label))
 bs <- z %>% select(label,bootstrap)
 
 ########Export to iTol for rooting---------------
-write.tree(as.phylo(z),"ztree.txt")
+write.tree(as.phylo(z),"ztree.100.txt")
 
 ########Import from iTol after rooting---------------
-tree<-read.newick("saoUUnROM79FcYUIxjHaHw_newick.txt")
+tree<-read.newick("3v-0HXCVkNPAWCBGnrpcjA_newick.txt")
 w <-as_tibble(tree)
 x <- left_join(w,bs)
 x
@@ -62,22 +64,39 @@ for (i in 1:nrow(x)){
 }
 x <- mutate(x, N_tips = N_tips)
 x %>% print(n=4000)
+top_node <- x %>% filter(bootstrap==100) %>% filter (N_tips == max(N_tips))
+top_node <- top_node[1,]
+library(ape)
+test <- root(raxml,node = top_node$node,edgelabel=TRUE)
+test_table <- as_tibble(test)
+is.rooted(test)
+ancestor(y,1000)
+child(x,3437)
+ape::mixedFontLabel
+install.packages("ape")
+test <- midpoint(as.phylo(raxml),node.labels = 'support')
+as_tibble(test)%>%print(n=4000)
+MRCA(x,1000,4000,3972)
+?MRCA
+###for every tree node, find a pair of nodes that define it
 
+
+x<-y
+tree<-raxml
+x %>% filter(N_tips==1)
 ## Find clades that are a good size and have best available support------
 good_size_clades<-vector()
 for (m in tree$tip.label){
   #m <- messy[5,]$node
   #m <- "7416_T436-R1/25-406"
   print(m)
-  #(ancestry <- ancestor(x,m) %>% filter(N_tips >40, N_tips <500)) ### original parameters for Atha NLRome
-  #(ancestry <- ancestor(x,m) %>% filter(N_tips >18, N_tips <500))  ### modified given 27 ecotypes
-  (ancestry <- ancestor(x,m) %>% filter(N_tips >18, N_tips <250))  ### modified given 27 ecotypes
+  (ancestry <- ancestor(x,m) %>% filter(N_tips >14, N_tips <250))  ### modified given 27 ecotypes
   n <- ancestry %>% filter(bootstrap == max(ancestry$bootstrap))
   good_size_clades<-rbind(good_size_clades,n)
 }
 good_size_clades <- good_size_clades %>% distinct()
 good_size_clades %>% arrange(bootstrap) %>% print(n=200)
-good_size_clades %>% filter(bootstrap <70) %>% arrange(N_tips) %>% print(n=50) ## 20 poor clades
+good_size_clades %>% filter(bootstrap <70) %>% arrange(N_tips) %>% print(n=50) 
 
 ##check that the assignment is unique
 a <- good_size_clades$node
@@ -100,14 +119,16 @@ partition
 partition %>% select(N_tips) %>% sum()
 x %>% filter(is.na(bootstrap))
 partition %>% arrange(bootstrap) %>% print(n=300)
+partition %>% filter(bootstrap < 70) %>% arrange(N_tips) %>% print(n=50) ## 4 poor BS clades
+partition %>% arrange(N_tips) %>% print(n=300)
+
 
 ###Where are the missing tips and why are they missing?
 tips<-tree$tip.label
 missing<-vector()
 for (a in 1:length(tips)){ if (x[a,]$node %ni% offs_pool){missing<-rbind(missing,x[a,])}}
-missing %>% print(n=nrow(missing)) ## only sorghum sequences are missing from partition. These can be ignored.
+missing %>% print(n=nrow(missing)) ## nothing missing
 
-### Below code not used for maize
 # compl<-vector()
 # for (n in missing$node){
 #   (ancestry <- ancestor(x,n) %>% filter(N_tips <51))
@@ -132,7 +153,7 @@ missing %>% print(n=nrow(missing)) ## only sorghum sequences are missing from pa
 # anc_pool <- unique(anc_pool)
 # offs_pool <- unique(offs_pool)
 # 
-# partition 
+# partition
 # x[a[which(a %ni% offs_pool)],]
 # partition <- x[a[which(a %ni% offs_pool)],]
 # partition %>% select(N_tips) %>% sum()
