@@ -25,9 +25,10 @@
 #BiocManager::install("ggtree")
 #BiocManager::install("treeio")
 #BiocManager::install("tidytree")
-install.packages("tidyverse")
-install.packages("phangorn")
-
+# install.packages("tidyverse")
+# install.packages("phangorn")
+source("~/GitHub/Gm_NLRome/Phylo_functions.R")
+library("parallel")
 library("tidyverse")
 library("ggtree")
 library("treeio")
@@ -39,22 +40,21 @@ setwd("~/Dropbox/NLRomes/Maize_NLRome/NLRome/")
 
 ########Import RAXML tree---------------
 raxml <- read.raxml("RAxML_bipartitionsBranchLabels.ZMonly.100.Raxml.out")
-y <- as_tibble(raxml)
-which(!is.na(y$label)) 
+
 ########Annotate Internal Nodes and save Bootstrap values---------------
-z <- mutate(y, label=if_else(is.na(label),paste0("Int",node),label))
+z <- mutate(as_tibble(raxml), label=if_else(is.na(label),paste0("Int",node),label))
 bs <- z %>% select(label,bootstrap)
 
-########Export to iTol for rooting---------------
-write.tree(as.phylo(z),"ztree.100.txt")
+########Root midpoint -----------------------
+tree <- midpoint(as.phylo(z))
+x <- left_join(as_tibble(tree),bs)
+x %>% print(n=4000)
+as.phylo(x)
 
-########Import from iTol after rooting---------------
-tree<-read.newick("3v-0HXCVkNPAWCBGnrpcjA_newick.txt")
-w <-as_tibble(tree)
-x <- left_join(w,bs)
-x
 x %>% filter(label == "Int4000")
 z %>% filter(label == "Int4000")
+
+is.rooted(as.phylo(x))
 
 ###Get number of leaves per node------
 N_tips<-vector(length = nrow(x))
@@ -64,26 +64,12 @@ for (i in 1:nrow(x)){
 }
 x <- mutate(x, N_tips = N_tips)
 x %>% print(n=4000)
-top_node <- x %>% filter(bootstrap==100) %>% filter (N_tips == max(N_tips))
-top_node <- top_node[1,]
-library(ape)
-test <- root(raxml,node = top_node$node,edgelabel=TRUE)
-test_table <- as_tibble(test)
-is.rooted(test)
-ancestor(y,1000)
-child(x,3437)
-ape::mixedFontLabel
-install.packages("ape")
-test <- midpoint(as.phylo(raxml),node.labels = 'support')
-as_tibble(test)%>%print(n=4000)
-MRCA(x,1000,4000,3972)
-?MRCA
-###for every tree node, find a pair of nodes that define it
 
+## Get a MRCA definition for every node in the tree ----------------
+ncores <- 8
+x <- x %>% mutate(mrca_id = mclapply(x$node, get_mrca_name,tree  = x,mc.cores = ncores)%>%unlist)
+x %>% filter(!is.na(mrca_id))
 
-x<-y
-tree<-raxml
-x %>% filter(N_tips==1)
 ## Find clades that are a good size and have best available support------
 good_size_clades<-vector()
 for (m in tree$tip.label){
