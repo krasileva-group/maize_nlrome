@@ -27,98 +27,102 @@
 #BiocManager::install("tidytree")
 # install.packages("tidyverse")
 # install.packages("phangorn")
-source("~/BioInf/GitHub/Gm_NLRome/Phylo_functions.R") #macbook
-source("~/GitHub/Gm_NLRome/Phylo_functions.R")        #imac
-library("parallel")
-library("tidyverse")
-library("ggtree")
-library("treeio")
-library("tidytree")
-library("phangorn")
+#source("~/BioInf/GitHub/Gm_NLRome/Phylo_functions.R") #macbook
+#source("~/GitHub/Gm_NLRome/Phylo_functions.R")        #imac
+require("parallel")
+require("tidyverse")
+require("ggtree")
+require("treeio")
+require("tidytree")
+require("phangorn")
 
+###### Useful functions -------------
 '%ni%' <- Negate('%in%')
-setwd("~/Dropbox/NLRomes/Maize_NLRome/NLRome/")
 
-########Import RAXML tree---------------
-raxml <- read.raxml("RAxML_bipartitionsBranchLabels.ZMonly.100.Raxml.out")
+get_mrca_name <- function(tree,node){
+  require(treeio)
+  if (!inherits(tree,"tbl_tree")) stop("Agrument must be a 'tbl_tree' object, use as_tibble() on treedata or phylo objects before passing to this function")
+  if (isTip(tree,node)){return(NA)}else{
+    tip_1 <- offspring(tree,child(tree,node)[1,]$node,tiponly = TRUE, self_include = T)[1,] 
+    tip_2 <- offspring(tree,child(tree,node)[2,]$node,tiponly = TRUE, self_include = T)[1,] 
+    return(paste0(tip_1$label,"|", tip_2$label))
+  }
+}
+
+count_tips <- function(tree,node){
+  require(treeio)
+  if (!inherits(tree,"tbl_tree")) stop("Agrument must be a 'tbl_tree' object, use as_tibble() on treedata or phylo objects before passing to this function")
+  return(length(offspring(tree,node, tiponly = T,self_include = T)$node))
+}
+
+######## Import snakemake pointers ---------------
+raxml <- read.raxml(snakemake@input[["tree"]])
+min_seq <- snakemake@params[["min_seq"]]
+max_seq <- snakemake@params[["max_seq"]]
+cladestar <- snakemake@output[["cladestar"]]
+tsv <- snakemake@output[["tsv"]]
+cladestrip <- snakemake@output[["cladestrip"]]
+ncores <- snakemake@threads
 
 ########Annotate Internal Nodes and save Bootstrap values---------------
+cat ("========================================\nReading tree\n")
 z <- mutate(as_tibble(raxml), label=if_else(is.na(label),paste0("Int",node),label))
 bs <- z %>% select(label,bootstrap)
-write.tree(as.phylo(z),"ZMonly.100.ztree.txt")
+#write.tree(as.phylo(z),"ZMonly.100.ztree.txt")
 ########Root midpoint -----------------------
+cat ("========================================\nRooting at midpoint\n")
+
 tree <- midpoint(as.phylo(z))
 x <- left_join(as_tibble(tree),bs)
-x %>% print(n=4000)
-as.phylo(x)
-
-x %>% filter(label == "Int4000")
-z %>% filter(label == "Int4000")
-
-is.rooted(as.phylo(x))
 
 ###Get number of leaves per node------
-N_tips<-vector(length = nrow(x))
-for (i in 1:nrow(x)){
-  nd <- x$node[[i]]
-  N_tips[[i]] <- length(offspring(x,nd, tiponly = T,self_include = T)$node)
-}
-x <- mutate(x, N_tips = N_tips)
-x %>% print(n=4000)
+cat ("========================================\nCounting leaves per node\n")
+
+x <- x %>% mutate(N_tips = mclapply(node , tree = x, count_tips, mc.cores = ncores)%>%unlist)
 
 ## Get a MRCA definition for every node in the tree ----------------
-ncores <- 4
+cat ("========================================\nGetting node names by MRCA method\n")
+
 x <- x %>% mutate(mrca_id = mclapply(x$node, get_mrca_name,tree  = x,mc.cores = ncores)%>%unlist)
-x %>% filter(!is.na(mrca_id))
+
 
 ## Find clades that are a good size and have best available support------
+cat ("========================================\nFinding best scoring clades given min/max parameters\n")
+
 good_size_clades<-vector()
 for (m in tree$tip.label){
-  #m <- "7416_T436-R1/25-406"
-  print(m)
-  (ancestry <- ancestor(x,m) %>% filter(N_tips >14, N_tips <250))  ### modified given 27 ecotypes
+  (ancestry <- ancestor(x,m) %>% filter(N_tips > min_seq, N_tips < max_seq))  
   n <- ancestry %>% filter(bootstrap == max(ancestry$bootstrap))
   good_size_clades<-rbind(good_size_clades,n)
 }
 good_size_clades <- good_size_clades %>% distinct()
-good_size_clades %>% arrange(bootstrap) %>% print(n=200)
-good_size_clades %>% filter(bootstrap <70) %>% arrange(N_tips) %>% print(n=50) 
 
 ##check that the assignment is unique
 a <- good_size_clades$node
-anc_pool<-vector()
 offs_pool<-vector()
 for (nd in a){
-  anc <- ancestor(x,nd)$node
-  anc_pool <- c(anc_pool,anc)
   offs <- offspring(x,nd)$node
   offs_pool <- c(offs_pool,offs)
 }
-anc_pool <- unique(anc_pool)
-anc_pool
 offs_pool <- unique(offs_pool)
-offs_pool
+partition <- x[a[which(a %ni% offs_pool)],]
 
-partition <- good_size_clades
-partition
-(partition <- x[a[which(a %ni% offs_pool)],])
+cat ("========================================\nFound clades for these many tips:\n")
+
 partition %>% select(N_tips) %>% sum()
-x %>% filter(is.na(bootstrap),!is.na(label)) %>% select(N_tips) %>% sum()
-partition %>% arrange(bootstrap) %>% print(n=300)
-partition %>% filter(bootstrap < 70) %>% arrange(N_tips) %>% print(n=50) ## 4 poor BS clades
-partition %>% arrange(N_tips) %>% print(n=300)
 
+cat ("========================================\nTotal number tips:\n")
+
+x %>% filter(is.na(bootstrap),!is.na(label)) %>% select(N_tips) %>% sum()
 
 ###Where are the missing tips and why are they missing?
 tips<-tree$tip.label
 missing<-vector()
 for (a in 1:length(tips)){ if (x[a,]$node %ni% offs_pool){missing<-rbind(missing,x[a,])}}
-missing %>% print(n=nrow(missing)) ## nothing missing
-
 if (!is_empty(missing)){
           compl<-vector()
           for (n in missing$node){
-            (ancestry <- ancestor(x,n) %>% filter(N_tips <51))
+            (ancestry <- ancestor(x,n) %>% filter(N_tips <= min_seq))
             c <- ancestry %>% filter(N_tips == max(ancestry$N_tips))
             compl<-rbind(compl,c)
           }
@@ -134,13 +138,20 @@ if (!is_empty(missing)){
           }
           offs_pool <- unique(offs_pool)
           partition <- x[a[which(a %ni% offs_pool)],]
+          cat ("========================================\nAdding smaller clades for missing tips. Now covering these many tips:\n")
           partition %>% select(N_tips) %>% sum()
+          cat ("========================================\nTotal number of tips:\n")
           length(tips)
 }
 
-ggplot(partition, aes(x=N_tips))+geom_histogram(binwidth = 1)
-ggplot(partition, aes(x=N_tips))+geom_histogram(binwidth = 25)
-ggplot(partition, aes(x=bootstrap))+geom_histogram(binwidth = 1)
+cat ("========================================\nCurrent partition:\n")
+partition %>% arrange(bootstrap) %>% print(n=300)
+cat ("========================================\nClades below 70 bs value, inspect these in iTOL:\n")
+partition %>% filter(bootstrap < 70) %>% arrange(N_tips) %>% print(n=50) ## 4 poor BS clades
+
+# ggplot(partition, aes(x=N_tips))+geom_histogram(binwidth = 1)
+# ggplot(partition, aes(x=N_tips))+geom_histogram(binwidth = 25)
+# ggplot(partition, aes(x=bootstrap))+geom_histogram(binwidth = 1)
 
 ### Export text files for every label in partition40 and populate with properly formatted gene id's for automatic retrieval---------
 # for (n in 1:(nrow(partition))) {
@@ -154,7 +165,7 @@ ggplot(partition, aes(x=bootstrap))+geom_histogram(binwidth = 1)
 ########################################################
 ###Export partition, gene lists for initial clades -----
 ########################################################
-# write_delim(partition,"Partition.tsv", delim = "\t")
+write_delim(partition,tsv, delim = "\t")
 
 # ###Export text files for every label in partition and populate with properly formatted gene id's for automatic retreaval---------
 # for (n in 1:(nrow(partition))) {
@@ -168,9 +179,6 @@ ggplot(partition, aes(x=bootstrap))+geom_histogram(binwidth = 1)
 ########################################################
 ###Export annotations for iTOL------
 ########################################################
- # annotation <- partition %>%select(label,bootstrap) %>% mutate(position = 0.5, color = "rgb(0, 0, 0)"	,style = "normal", size = 	2	)
- # write_tsv(annotation, "Node_annotation.txt",col_names = F)
-
 ### Initial Clades as Color Strips
 # At this point nodes have names, which should simplify things
 
@@ -179,12 +187,13 @@ library(RColorBrewer)
 getPalette = colorRampPalette(brewer.pal(9, "Set1"))
 partition %>% select(mrca_id,label) %>% mutate(color = sample(getPalette(colourCount)), Annotation = label,label=mrca_id) %>%select(-mrca_id) ->export
 
-sink("colorstrip.txt",append = F)
+sink(cladestrip,append = F)
 cat(
   "DATASET_COLORSTRIP
 SEPARATOR SPACE
-DATASET_LABEL InitialClades
-COLOR #ff0000
+DATASET_LABEL InitialClades")
+cat(paste0("_",min_seq,"_",max_seq,"\n"))
+cat("COLOR #ff0000
 COLOR_BRANCHES 1
 BORDER_WIDTH 0
 BORDER_COLOR #0000ff
@@ -196,7 +205,7 @@ for (ii in 1:length(export$label)){
   cat("\n")
 }
 sink()
-getwd()
+#getwd()
 
 ## Reference genes as text labels
 # Names <- read_delim("Autoclades_70/AthaKnownGenes.txt", delim = "\t", col_names = c("ID","Name"))
@@ -220,12 +229,14 @@ getwd()
 
 ## Cut nodes as node symbols
 
-sink("cutbranch.txt", append = F)
+sink(cladestar, append = F)
 cat("DATASET_SYMBOL
 SEPARATOR SPACE
 
 #label is used in the legend table (can be changed later)
-DATASET_LABEL CutNodes
+DATASET_LABEL CutNodes")
+cat(paste0("_",min_seq,"_",max_seq,"\n"))
+cat("
 
 #dataset color (can be changed later)
 COLOR #ffff00
@@ -241,7 +252,3 @@ for (ii in 1:length(export$label)){
     {cat(" 3 10 #ff0000 1 0.25\n")}
 }
 sink()
-
-
-
-
