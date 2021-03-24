@@ -208,12 +208,13 @@ sink()
 #getwd()
 
 ## Reference genes as text labels
-# Names <- read_delim("Autoclades_70/AthaKnownGenes.txt", delim = "\t", col_names = c("ID","Name"))
-# Names %>% print(n=100)
-# x %>% mutate(ID = str_remove(label,"/.*$")) %>% left_join(Names) %>% filter(!is.na(Name))%>%
+# getwd()
+# Names <- read_delim("Zea_Known_genes.txt", delim = "\t", col_names = c("ID","Name","Description"))
+# Names <- Names %>% mutate(ID = toupper(ID))
+# x %>% mutate(ID = str_remove(label,"_.*$")) %>% left_join(Names) %>% filter(!is.na(Name))%>%
 #   select(label,Name)->export_names
 # 
-# sink("test_genelabels.txt",append = F)
+# sink("iTOL.NamedGenes.txt",append = F)
 # cat(
 #   "DATASET_TEXT
 # SEPARATOR SPACE
@@ -252,3 +253,4 @@ for (ii in 1:length(export$label)){
     {cat(" 3 10 #ff0000 1 0.25\n")}
 }
 sink()
+
