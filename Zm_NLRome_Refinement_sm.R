@@ -299,6 +299,12 @@ export <- BigTable %>% filter(branch.length >0.1) %>% print(n=200) ##These branc
 write_delim(export %>% select(Clade,parent,node,branch.length,label,bootstrap,mrca_id,N_OverlapEco) %>% arrange(Clade,branch.length),snakemake@output[["tsv"]])
 
 
+#### Use below to export additional cut nodes:
+# setwd("~/Dropbox/NLRomes/Maize_NLRome/RAxML_tree_pbNB-ARC/Initial_Clades/")
+# export <- BigTable %>% filter(branch.length >0.06,bootstrap == 100,Clade == "Int5286_45") %>% print(n=200) ##These branches should be checked
+# write_delim(export %>% select(Clade,parent,node,branch.length,label,bootstrap,mrca_id,N_OverlapEco) %>% arrange(Clade,branch.length),"Extra_nodes.txt")
+
+
 ii<-5
 sink(cladestar, append = F)
 cat("DATASET_SYMBOL
