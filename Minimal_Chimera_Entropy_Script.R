@@ -20,10 +20,10 @@
 ## ---------------------------
 
 
-
+#install.packages("optparse")
 ## load packages --------------------
 
-package_list<-c("optparse","entropy","dplyr","msa")
+package_list<-c("optparse","entropy","dplyr","msa","tidyverse")
 
 load_pack <- function(x){
   for( i in x ){
@@ -131,6 +131,19 @@ for (ii in seq_along(entNG[[1]])){
   cat("\n")
 }
 sink()   
+
+Ent <- as_tibble(cbind(1:nrow(entNG),entNG))
+colnames(Ent)<-c("Position","Entropy")
+
+ggplot(Ent, aes(x = Position))+
+  geom_line(aes(y = Entropy), color = "red")+
+  ylim(0,3)+
+  ggtitle(paste(gene)) +
+  xlab("Position") + 
+  ylab("Shannon Entropy")+
+  theme_classic()
+ggsave(paste0(OutputDirectory,gene,"_","Entropy_MaskedNG",".pdf"))
+
 
 ## Report result location --------------------------------
 cat("=======================================\nFinished analysis of alignment: ",opt$file,
