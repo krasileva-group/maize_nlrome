@@ -332,6 +332,5 @@ for (ii in 1:length(export$label)){
 sink()
 
 
-
-write_delim(BigTable,snakemake@output[["bigtable"]],delim = "\t")
+save(BigTable, file = snakemake@output[["BigTable"]])
 save.image(file = "SM.RData")
