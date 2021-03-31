@@ -181,9 +181,9 @@ write_delim(stats, path = paste0(OutputDirectory,"/","Stats.txt"), delim = "\t",
 ##Use cutoff value of 90% invariant sites (without gaps) for clades not to be split
 # DoNotSplit <- stats %>% filter(FractionZeroNG > 0.9) %>% arrange(Clade) %>% print(n=nrow(stats))
 
-# ToiTol <- stats %>% filter(FractionZeroNG < 0.9) %>% arrange(N_HV_Sites) %>% print(n=nrow(stats))
-# ToiTol <- mutate(ToiTol, path = paste0(Clade,"/","RAxML_bipartitionsBranchLabels.",Clade,".First.out"))
-# write_delim(ToiTol %>% select(path),"To_iTol.list",col_names = F, delim = " ")
+ToiTol <- stats %>% filter(FractionZeroNG < 0.9) %>% arrange(N_HV_Sites) %>% print(n=nrow(stats))
+ToiTol <- mutate(ToiTol, path = paste0("RAxML_bipartitionsBranchLabels.",Clade,".Raxml.out"))
+write_delim(ToiTol %>% select(path),paste0(OutputDirectory,"/To_iTol.list"),col_names = F, delim = " ")
 
 ##Plot Entropy figures for all Clades, save in ./Plots/----------------------
 ## Set plot hight in bits
@@ -193,7 +193,7 @@ m <- max(2.2,na.omit(unlist(Entropy)))
 plots_dir <- paste0(OutputDirectory,"/","Plots")
 if (!dir.exists(plots_dir)){dir.create(plots_dir)}
 ## Entropy plotting
-if(1==0){for (l in seq_along(Entropy)){
+if(1==1){for (l in seq_along(Entropy)){
   folder <- str_remove(colnames(Entropy[[l]]),"Entropy_")
   cat(folder)
   cat("\n")
@@ -300,10 +300,10 @@ write_delim(export %>% select(Clade,parent,node,branch.length,label,bootstrap,mr
 
 
 #### Use below to export additional cut nodes:
-# setwd("~/Dropbox/NLRomes/Maize_NLRome/RAxML_tree_pbNB-ARC/Initial_Clades/")
-# export <- BigTable %>% filter(branch.length >0.06,bootstrap == 100,Clade == "Int5286_45") %>% print(n=200) ##These branches should be checked
+# setwd("~/Dropbox/NLRomes/Maize_NLRome/RAxML_tree_pbNB-ARC/Clade_Refinement_2/")
+# export <- BigTable %>% filter(branch.length >0.01,bootstrap == 100,Clade == "Int6329_131_253_L_122_209_R_35") %>% print(n=200) ##These branches should be checked
 # write_delim(export %>% select(Clade,parent,node,branch.length,label,bootstrap,mrca_id,N_OverlapEco) %>% arrange(Clade,branch.length),"Extra_nodes.txt")
-
+# 
 
 ii<-5
 sink(cladestar, append = F)
