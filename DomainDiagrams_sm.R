@@ -57,9 +57,15 @@ cat ("========================================\nRead reduced PFAM table:\n")
 min_pfam_domains
 
 #### Get LRR predictor domain definitions, save results for future use --------------
-all_lrr <- read_delim(snakemake@input$lrrpred,col_names = TRUE, delim = "\t")
+# all_lrr <- read_delim("~/Dropbox/NLRomes/Rice_NLRome/Annotation/all_samples.LRRpred.tsv",
+#                       col_names = c("Prot","pos","clf1","clf2","clf3","clf4","clf5","clf6","clf7","clf8","LRRpred","-5","-4","-3","-2","-1", "SP1","1","2","3","4","5","6","SP2","+6","+7","+8","+9","+10"),
+#                       delim = "\t",comment = "#")
+all_lrr <- read_delim(snakemake@input$lrrpred,
+                      col_names = c("Prot","pos","clf1","clf2","clf3","clf4","clf5","clf6","clf7","clf8","LRRpred","-5","-4","-3","-2","-1", "SP1","1","2","3","4","5","6","SP2","+6","+7","+8","+9","+10"),
+                      delim = "\t",comment = "#")
+#all_lrr <- read_delim(snakemake@input$lrrpred,col_names = TRUE, delim = "\t",comment = "#")
 
-min_lrrpred <- tibble(Gene = all_lrr$`#Prot`,
+min_lrrpred <- tibble(Gene = all_lrr$Prot %>% str_replace("NC_","NC@") %>% str_replace("_",".") %>% str_replace("NC@","NC_"),
                        Dom = "LRR",
                        Start = all_lrr$pos-5,
                        Stop = all_lrr$pos+15,
