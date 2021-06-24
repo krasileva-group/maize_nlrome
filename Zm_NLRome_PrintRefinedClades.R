@@ -6,6 +6,8 @@ require("tidytree")
 
 
 #setwd("~/Dropbox/NLRomes/Maize_NLRome/")
+setwd("~/Dropbox/NLRomes/Rice_NLRome/")
+
 Cut_Nodes_10<-read_delim(snakemake@input[["tsv"]],delim = " ",col_names = T)
 load(snakemake@input[["BigTable"]])
 OutputDirectory <- snakemake@output[["dir"]]
@@ -30,6 +32,7 @@ for (i in 1:nrow(BigTable)){if (!is.na(BigTable[i,]$label)){                    
   (SplitNodes <- filter(TreeData,Split_Node_1))
   if (nrow(SplitNodes)>0){
     (TopClade <- SplitNodes %>% filter(R_tips == max(SplitNodes$R_tips)))
+    TopClade <- TopClade[1,]
     if (is.na(Tip$Split_Node_1)){
       if (nrow(dplyr::intersect(ancestor(TreeData,Tip$node),SplitNodes))>0){
         SplitAncestors <- dplyr::intersect(ancestor(TreeData,Tip$node),SplitNodes)
@@ -49,6 +52,9 @@ CladeStat <- BigTable_1 %>% filter(!is.na(Split_1),!grepl('SORBI',label)) %>%
                             mutate(Split = ifelse(Clade == Split_1,Clade,paste0(Split_1,"_",n))) %>% print(n=300)
 CladeStat %>% ungroup() %>% select(Clade) %>% distinct()
 CladeStat %>% ungroup() %>% select(Split) %>% distinct()
+
+CladeStat %>% ungroup() %>%filter(n > 3,Split != Clade) %>% select(Split) %>% distinct() %>% write_delim("pbNB-ARC_Clade.r1.tree.list",col_names = F, append = T)
+
 CladeStat %>% ungroup() %>% group_by(Clade,Split) %>% count() %>% filter(Clade == Split)%>%print(n=1000)
 BigTable_1 <- left_join(BigTable_1,CladeStat %>% select(-n)) %>% select(-Split_1)
 #BigTable  %>% select(label) %>% distinct()
@@ -82,4 +88,5 @@ for (n in 1:(nrow(CladeStat))) {
     write_delim(x = as.data.frame(tipnames), path = paste0(OutputDirectory,"/",clade,".txt"), delim = "\t",quote_escape = "double",append = F,col_names = F)
   }
 }  
+
 save.image("Test_printrefined.RData")
