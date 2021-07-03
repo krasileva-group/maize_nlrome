@@ -6,7 +6,7 @@ require("tidytree")
 
 
 #setwd("~/Dropbox/NLRomes/Maize_NLRome/")
-setwd("~/Dropbox/NLRomes/Rice_NLRome/")
+#setwd("~/Dropbox/NLRomes/Rice_NLRome/")
 
 Cut_Nodes_10<-read_delim(snakemake@input[["tsv"]],delim = " ",col_names = T)
 load(snakemake@input[["BigTable"]])
@@ -66,7 +66,7 @@ BigTable_1 <- left_join(BigTable_1,CladeStat %>% select(-n)) %>% select(-Split_1
 
 # ## First Refinement. Print out new clade assignment for every tip ###This needs to change to get names identical to clade names below i.e. end in number of genes in the clade
  FirstAssignment <- BigTable_1 %>% filter(!is.na(Split)) %>% select(label,Split)
- write_delim(x = FirstAssignment, path = snakemake@output[["list"]] , delim = "\t",quote_escape = "double",append = F,col_names = T)
+ write_delim(x = FirstAssignment, file = snakemake@output[["list"]] , delim = "\t",quote_escape = "double",append = F,col_names = T)
 
 ###Find duplicate tips
 Duplicates <- BigTable_1 %>% group_by(label) %>%summarise(n=n()) %>% filter(n>1)
@@ -85,7 +85,7 @@ for (n in 1:(nrow(CladeStat))) {
   tips <- BigTable_1 %>% filter(Split == clade)
   tipnames <- tips$label
   if(tips[1,]$Clade != tips[1,]$Split){
-    write_delim(x = as.data.frame(tipnames), path = paste0(OutputDirectory,"/",clade,".txt"), delim = "\t",quote_escape = "double",append = F,col_names = F)
+    write_delim(x = as.data.frame(tipnames), file = paste0(OutputDirectory,"/",clade,".txt"), delim = "\t",quote_escape = "double",append = F,col_names = F)
   }
 }  
 

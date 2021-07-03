@@ -110,12 +110,12 @@ cat("======================================\nReading .afa files\n")
 for (i in seq_along(files)) {
   ## Read alignment
   maa <- readAAMultipleAlignment(files[[i]])
-  
+
   ## Extracting folder name
   folder <- str_split(files[[i]], "/")[[1]][3] %>% str_remove(".afa")
   cat(paste0(folder,"\n"))
   ## Filter out gappy columns
-  
+  ?maskGaps
   if ("-" %in% rownames(consensusMatrix(maa))){
     autoMasked <- maskGaps(maa, min.fraction = MinGapFraction, min.block.width = MinGapBlockWidth) ##KEY FILTERING PARAMETERS
     MinAli <- as(autoMasked, "AAStringSet")

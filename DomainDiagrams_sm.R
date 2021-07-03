@@ -25,7 +25,7 @@ require(Biostrings)
 ## set working directory
 
 #setwd("~/Dropbox/NLRomes/Maize_NLRome/")  
-setwd("~/Dropbox/NLRomes/Atha_SnkMk_NLRome")  
+#setwd("~/Dropbox/NLRomes/Atha_SnkMk_NLRome")  
 
 
 #### Get Pfam domain definitions --------------
@@ -181,6 +181,8 @@ cat ("========================================\nExtracting Protein Lengths:\n")
 
 fasta_files <- snakemake@input$fasta
 lengths<-vector("list",length = length(fasta_files))
+#save.image(file = "~/Dropbox/NLRomes/Soy_NLRome/Test.RData")
+#setwd("~/Dropbox/NLRomes/Soy_NLRome/")
 
 for (ii in seq_along(fasta_files)){
   print(paste0("Getting protein lengths from file ",ii, " of ", length(fasta_files), " (",fasta_files[[ii]],")..."))
