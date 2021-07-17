@@ -19,7 +19,9 @@ save.image("Test_printrefined.RData")
 ## Append a column to BigTable that contains the TRUE values for nodes in the cut list.
 Cut_Nodes_10 <- mutate(Cut_Nodes_10, Split_Node_1 = T)
 BigTable <- left_join(BigTable, Cut_Nodes_10 %>% select(label,node,Clade,Split_Node_1)%>%distinct(), by = c("label","node","Clade"))
+BigTable <- BigTable %>% distinct()
 cat("==============================\nClades to refine this round:")
+
 BigTable %>% filter(Split_Node_1) %>% select(Clade) %>% distinct() %>% print(n=1000)
 
 ## Generate Split_1 column with new clade assignment for every tip of every tree
@@ -47,7 +49,7 @@ for (i in 1:nrow(BigTable)){if (!is.na(BigTable[i,]$label)){                    
 BigTable_1 <- mutate(BigTable, Split_1 = as.factor(Split_1))
 BigTable_1 %>% select(label, Split_1) %>% print(n=1000)
 ## Count numbers of Maize tips in each new clade
-CladeStat <- BigTable_1 %>% filter(!is.na(Split_1),!grepl('SORBI',label)) %>% 
+CladeStat <- BigTable_1 %>% filter(!is.na(Split_1)) %>% 
                             group_by(Clade,Split_1) %>% summarise(n=n()) %>%
                             mutate(Split = ifelse(Clade == Split_1,Clade,paste0(Split_1,"_",n))) %>% print(n=300)
 CladeStat %>% ungroup() %>% select(Clade) %>% distinct()

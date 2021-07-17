@@ -68,12 +68,12 @@ all_lrr <- read_delim(snakemake@input$lrrpred,
 
 
 ## Rice version:
-# min_lrrpred <- tibble(Gene = all_lrr$Prot %>% str_replace("NC_","NC@") %>% str_replace("_",".") %>% str_replace("NC@","NC_"),
+# min_lrrpred <- tibble(Gene = all_lrr$Prot %>% str_replace("NC_","NC@") %>%str_replace("NW_","NW@") %>% str_replace("_",".") %>% str_replace("@","_"),
 #                       Dom = "LRR",
 #                       Start = all_lrr$pos-5,
 #                       Stop = all_lrr$pos+15,
 #                       Eval = all_lrr$LRRpred)
-
+# 
 min_lrrpred <- tibble(Gene = all_lrr$Prot,
                        Dom = "LRR",
                        Start = all_lrr$pos-5,
@@ -302,4 +302,4 @@ cat ("========================================\n\n")
 
 
 
-#save.image("Test.RData")
+save.image("Test.RData")
