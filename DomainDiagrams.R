@@ -136,8 +136,8 @@ if (!file.exists("Annotation/All_Domains_with_colors.tsv")){
 
 
 ### Export to iTOL ------------
-all_color_doms <- left_join(domains, all_doms, by = "Dom") 
-all_color_doms <- all_color_doms %>% mutate(iTOL = paste(Shape, Start, Stop, Color, Dom, sep = "|"))
+color_doms <- left_join(domains, all_doms, by = "Dom") 
+color_doms <- color_doms %>% mutate(iTOL = paste(Shape, Start, Stop, Color, Dom, sep = "|"))
 ### Need to leftjoin a table of protein lengths to this and will be ready for export!!!
 ### For the original tree will also need to bind names/start-stop to match leaf IDs
 fasta_files <- list.files(path = "Proteomes", pattern = "corr.*fasta", full.names = T)
@@ -152,7 +152,8 @@ for (ii in seq_along(fasta_files)){
 prot_l<-lengths[[1]]
 for (jj in 2:length(lengths)){prot_l<-rbind(prot_l,lengths[[jj]])}
 
-all_color_doms <- left_join(all_color_doms,prot_l) %>% filter(!is.na(Length))
+color_doms <- left_join(color_doms,prot_l) %>% filter(!is.na(Length))
+color_doms %>%arrange(Gene)
 
 afa_file <- list.files(path = "HMM_search_pbNB-ARC",pattern = ".afa$",full.names = T)
 a<-readAAStringSet(afa_file)
@@ -160,7 +161,7 @@ genreg <- tibble(GeneRegion=a@ranges@NAMES)
 genreg <- genreg %>% mutate(Gene = str_remove(GeneRegion,"\\/.*$")%>% str_replace_all(" ","_"))
 
 
-genreg<-left_join(genreg,all_color_doms, by = "Gene")
+genreg<-left_join(genreg,color_doms, by = "Gene")
 
 #%>% mutate(Gene = GeneRegion) %>% select(-GeneRegion) ->genreg
 
@@ -252,3 +253,45 @@ sink()
 genreg %>% filter(Dom %ni% main_doms$Dom) %>% select(GeneRegion) %>% distinct()%>%mutate(Flag = 1) %>% write_delim("Annotation/ID.genes.iTol.txt",col_names = F,delim = "\t", append = TRUE)
 
 #genreg %>% filter(GeneRegion %ni% (genreg %>% filter(Dom =="LRR") %>% select(GeneRegion) %>% unlist())) %>%select(GeneRegion) %>% distinct()%>%mutate(Flag = 1) %>% write_delim("Annotation/NoLRR.genes.iTol.txt",col_names = F,delim = "\t")
+
+#### Make pdf domain diagrams for genes we want to plot in figures ----------
+color_doms <- all_color_doms %>% filter(Gene %in% c(
+  "",
+  "",
+  ""
+))
+ 
+
+color_doms %>%select(Gene)%>% distinct()
+floor <- 0
+spacing <- 40
+graph_tbl <- vector()
+for (gene in levels(as.factor(color_doms$Gene)) )     {
+  #gene <- "A0A0M3JS88"
+  gene_tbl <- color_doms %>% filter(Gene == gene) %>%select(Gene,Dom,Start,Stop,Color,Length)
+  all <- tibble(Gene = gene,Dom = "",Start = 1, Stop = gene_tbl[[1,6]],Color = "#000000",Length = gene_tbl[[1,6]])
+  gene_tbl <- gene_tbl %>% mutate(ymin = floor+0,ymax=floor+10)
+  all <- all  %>% mutate(ymin = floor+4,ymax=floor+6)
+  tbl <- rbind(all,gene_tbl)%>%mutate(y_cent = floor+5)
+  graph_tbl <- rbind(graph_tbl,tbl)
+  floor<- floor+spacing
+}
+graph_tbl <- graph_tbl %>% filter(Gene %in% levels(as.factor(color_doms$Gene))[1:5] )
+plot <- ggplot() + 
+  geom_rect(aes(xmin = -400, xmax = tbl[[1,6]], ymin = 0, ymax = tbl[[1,6]]/8), 
+            fill = "white")+
+  geom_rect(graph_tbl, mapping = 
+              aes(xmin = Start, xmax = Stop, 
+                  ymin = ymin, ymax = ymax),
+            fill = graph_tbl$Color,
+            #alpha = 1,
+            color = "black") + 
+  geom_text(aes(label = graph_tbl$Dom,x = rowMeans(graph_tbl[,3:4]),y=graph_tbl$y_cent))+
+  geom_text(aes(label = graph_tbl$Gene,x = -300, y = graph_tbl$y_cent))+
+  geom_text(aes(label = graph_tbl$Length,x = graph_tbl$Length + 100 , y = graph_tbl$y_cent))+
+  theme_void()
+ggsave(x=plot,"test_plot.pdf")
+getwd()
+
+
+
