@@ -256,18 +256,42 @@ genreg %>% filter(Dom %ni% main_doms$Dom) %>% select(GeneRegion) %>% distinct()%
 
 #### Make pdf domain diagrams for genes we want to plot in figures ----------
 color_doms <- all_color_doms %>% filter(Gene %in% c(
-  "",
-  "",
-  ""
+  "A0A1D6MVM5",
+  "A0A1D6IRB2",
+  "A0A1D6IRQ2",
+  "A0A1D6IRV2",
+  "Example seq from Int4084",
+  "Example seq from Int3480_75"
 ))
  
 
+doms <- rbind(
+  c("A0A1D6MVM5","CC",82,222,1365),
+  c("A0A1D6MVM5","NB-ARC",257,593,1365),
+  c("A0A1D6MVM5","LRR",595,1307,1365),
+  c("A0A1D6IRB2","CC",1,142,1043),
+  c("A0A1D6IRB2","NB-ARC",160,509,1043),
+  c("A0A1D6IRB2","LRR",512,921,1043),
+  c("A0A1D6IRQ2","CC",1,195,1192),
+  c("A0A1D6IRQ2","NB-ARC",223,561,1192),
+  c("A0A1D6IRQ2","LRR",565,1131,1192),
+  c("A0A1D6IRV2","CC",1,39,1184),
+  c("A0A1D6IRV2","NB-ARC",75,416,1184),
+  c("A0A1D6IRV2","LRR",418,1178,1184)
+)
+doms <- tibble(Gene=doms[,1],Dom=doms[,2],Start=doms[,3]%>%col_integer,Stop=doms[,4],Length=doms[,5],col)
+doms <- doms %>% mutate(Start=as.integer(Start)) %>%
+  mutate(Stop=as.integer(Stop)) %>%
+  mutate(Length=as.integer(Length)) 
+  
+main_doms[[4,1]]<-"CC"
+color_doms <- doms %>% left_join(main_doms%>%select(Dom,Color))
 color_doms %>%select(Gene)%>% distinct()
 floor <- 0
 spacing <- 40
 graph_tbl <- vector()
 for (gene in levels(as.factor(color_doms$Gene)) )     {
-  #gene <- "A0A0M3JS88"
+  #gene <- "ZM00001EB015450_P001"
   gene_tbl <- color_doms %>% filter(Gene == gene) %>%select(Gene,Dom,Start,Stop,Color,Length)
   all <- tibble(Gene = gene,Dom = "",Start = 1, Stop = gene_tbl[[1,6]],Color = "#000000",Length = gene_tbl[[1,6]])
   gene_tbl <- gene_tbl %>% mutate(ymin = floor+0,ymax=floor+10)
@@ -276,7 +300,7 @@ for (gene in levels(as.factor(color_doms$Gene)) )     {
   graph_tbl <- rbind(graph_tbl,tbl)
   floor<- floor+spacing
 }
-graph_tbl <- graph_tbl %>% filter(Gene %in% levels(as.factor(color_doms$Gene))[1:5] )
+
 plot <- ggplot() + 
   geom_rect(aes(xmin = -400, xmax = tbl[[1,6]], ymin = 0, ymax = tbl[[1,6]]/8), 
             fill = "white")+
@@ -290,7 +314,8 @@ plot <- ggplot() +
   geom_text(aes(label = graph_tbl$Gene,x = -300, y = graph_tbl$y_cent))+
   geom_text(aes(label = graph_tbl$Length,x = graph_tbl$Length + 100 , y = graph_tbl$y_cent))+
   theme_void()
-ggsave(x=plot,"test_plot.pdf")
+plot
+ggsave(x=plot,"Figures/Drafts/test_plot.pdf")
 getwd()
 
 
