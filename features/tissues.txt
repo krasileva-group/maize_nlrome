@@ -1,0 +1,10 @@
+base
+embryo
+middle
+shoot
+tip
+anther
+ear
+endosperm
+root
+tassel

@@ -1,0 +1,229 @@
+---
+title: "methylation_processing"
+author: "Chandler Sutherland"
+date: "2023-04-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(ggsignif)
+library(ggpubr)
+library(ggbeeswarm)
+```
+
+```{r}
+nlr_only <- read.csv('/global/scratch/users/chandlersutherland/e16/cs_reports/nlr_meth.tsv', sep='\t')
+```
+
+```{r}
+b97 <- nlr_only %>% filter(accession=='B97')
+b97
+
+b97$HV <- factor(b97$HV, levels=c(0, 1))
+ggplot(b97,
+       aes(x=HV, y=CpG, fill=HV))+
+    geom_violin(lwd=0.25)+
+  geom_quasirandom(alpha=0.3, size=0.5)+
+   ylim(0,8.8)+
+    scale_fill_manual(values=c('#00BFC4',  '#F8766D'))+
+  theme_classic()+
+    theme(legend.position='none', text=element_text(size=10), 
+          axis.title=element_blank()) +
+  scale_x_discrete(labels=c('non-hv', 'hv'))
+
+ggplot(b97,
+       aes(x=HV, y=CHG, fill=HV))+
+    geom_violin(lwd=0.25)+
+  geom_quasirandom(alpha=0.3, size=0.5)+
+   ylim(0,8.8)+
+    scale_fill_manual(values=c('#00BFC4',  '#F8766D'))+
+  theme_classic()+
+    theme(legend.position='none', text=element_text(size=10), 
+          axis.title=element_blank()) +
+  scale_x_discrete(labels=c('non-hv', 'hv'))
+
+ggplot(b97,
+       aes(x=HV, y=CHH, fill=HV))+
+    geom_violin(lwd=0.25)+
+  geom_quasirandom(alpha=0.3, size=0.5)+
+   ylim(0,8.8)+
+    scale_fill_manual(values=c('#00BFC4',  '#F8766D'))+
+  theme_classic()+
+    theme(legend.position='none', text=element_text(size=10), 
+          axis.title=element_blank()) +
+  scale_x_discrete(labels=c('non-hv', 'hv'))
+```
+
+
+```{r}
+summary <- nlr_only %>% group_by(accession, name, HV) %>% 
+  summarise(CpG=mean(CpG),
+            CHH=mean(CHH),
+            CHG=mean(CHG),
+            .groups = 'drop')
+
+samples <- summary$accession %>% unique()
+p_calc <- function(sample, summary){
+  x <- summary %>% filter(accession == sample)
+  cpg <- compare_means(CpG~HV, x, method = 'wilcox.test', paired = FALSE)$p
+  chg <- compare_means(CHG~HV, x, method = 'wilcox.test', paired = FALSE)$p
+  chh <- compare_means(CHH~HV, x, method = 'wilcox.test', paired = FALSE)$p
+  return(c(sample, cpg, chg, chh))
+}
+p_calc('B97', summary)
+p_df <- data.frame(matrix(ncol=4,nrow=0))
+colnames(p_df)<-c('accession', 'cpg', 'chg', 'chh')
+
+
+for (i in 1:length(samples)){
+  p <- p_calc(samples[i],summary)
+  p_df[nrow(p_df)+1,]<-p
+}
+
+p_df$wilcoxon_p <- p_df$wilcoxon_p %>% as.numeric()
+p_df <- p_df[order(p_df$wilcoxon_p),]
+p_df$sig <- p_df$wilcoxon_p < 0.05
+
+p_ordered <- p_df$accession
+p_df$accession <- factor(p_df$accession, levels=p_ordered)
+
+ggplot(p_df, 
+       aes(x=accession,y=wilcoxon_p))+
+  geom_bar(stat='identity')+
+  geom_hline(yintercept=0.05, color="red")
+```
+
+```{r,fig.width=12,fig.height=2}
+summary$HV <- factor(summary$HV, levels=c(0, 1))
+summary$accession <- factor(summary$accession, levels=p_ordered)
+ggplot(summary,
+       aes(x=accession, y=CpG, fill=HV))+
+    geom_violin(lwd=0.25, position=position_dodge(0.7), adjust=2)+
+  #geom_quasirandom(alpha=0.3, size=0.5)+
+   ylim(0,8.8)+
+    scale_fill_manual(values=c('#00BFC4',  '#F8766D'))+
+  theme_classic()+
+    theme(legend.position='none', text=element_text(size=10), 
+          axis.title=element_blank())
+```
+```{r}
+summary[-c(5:6)] %>% na.omit() %>% group_by(accession) %>% summarize(count=n())
+
+
+```
+
+```{r}
+#CpG <- read.csv('/global/scratch/users/chandlersutherland/e16/cs_reports/CpG_meth.tsv', sep='\t')
+avg_cpg <- CpG %>% group_by(accession, name) %>% 
+  summarise(CpG=mean(meth_percentage),
+            .groups = 'drop')
+
+avg_cpg$accession <- avg_cpg$accession %>% toupper()
+
+cpg_merged <- merge(avg_cpg, gene_table, by.x='name', by.y='Gene', all=TRUE)
+
+cpg_table <- cpg_merged %>% subset(select=c('accession', 'name', 'HV', 'CpG')) %>%
+  mutate(HV=recode(HV, `0` = "non-hv", `1`="hv"))
+
+cpg_table$HV[is.na(cpg_table$HV)]<-'all_genes'
+cpg_table$HV <- factor(cpg_table$HV , levels=c("all_genes", "non-hv", "hv"))
+
+colnames(cpg_table) <- c('accession', 'name', 'HV', 'meth_percentage')
+
+cpg_nlr <- cpg_table %>% filter(HV != 'all_genes') %>% na.omit()
+cpg_nlr %>% group_by(HV) %>% count()
+```
+
+
+```{r}
+#CpG_nlr <- read.csv('/global/scratch/users/chandlersutherland/e16/cs_reports/CpG_meth_nlr.tsv', sep='\t')
+#CpG_nlr %>% group_by(accession, HV) %>% summarize(count=n())
+
+p_calc <- function(sample, summary){
+  x <- summary %>% filter(accession == sample)
+  cpg <- compare_means(meth_percentage~HV, x, method = 'wilcox.test', paired = FALSE)$p
+  return(c(sample, cpg))
+}
+
+
+samples <- cpg_nlr$accession %>% unique()
+
+p_calc('B97', cpg_nlr)
+p_df <- data.frame(matrix(ncol=2,nrow=0))
+colnames(p_df)<-c('accession', 'cpg')
+
+
+for (i in 1:length(samples)){
+  p <- p_calc(samples[i],cpg_nlr)
+  p_df[nrow(p_df)+1,]<-p
+}
+
+p_df$sig<- p_df$cpg<0.05
+
+p_df$cpg <- p_df$cpg %>% as.numeric()
+p_df <- p_df[order(p_df$cpg),]
+p_df$sig_bonferroni <- p_df$cpg<0.05/25
+p_ordered <- p_df$accession
+p_df$accession <- factor(p_df$accession, levels=p_ordered)
+
+ggplot(p_df, 
+       aes(x=accession,y=cpg))+
+  geom_bar(stat='identity')+
+  geom_hline(yintercept=0.05, color="red")+
+  geom_hline(yintercept=0.05/25, color='blue')
+```
+```{r,fig.width=12,fig.height=2}
+#cpg_nlr$HV <- factor(cpg_nlr$HV, levels=c('non-hv', 'hv'))
+cpg_nlr$accession <- factor(cpg_nlr$accession, levels=p_ordered)
+ggplot(cpg_nlr,
+       aes(x=accession, y=meth_percentage, fill=HV))+
+    geom_violin(lwd=0.25, position=position_dodge(0.7), adjust=1.25)+
+  #geom_quasirandom(alpha=0.3, size=0.5)+
+   ylim(0,100)+
+    scale_fill_manual(values=c('#00BFC4',  '#F8766D'))+
+  theme_classic()+
+    theme(legend.position='right', text=element_text(size=10), 
+          axis.title=element_blank())
+```
+```{r}
+ggplot(cpg_nlr,
+       aes(x=HV, y=meth_percentage, fill=HV))+
+    geom_violin(lwd=0.25)+
+  theme_classic()+
+ # ylim(0,100)+
+  geom_quasirandom(alpha=0.3, size=0.5)+
+    theme(legend.position='none', text=element_text(size=10), 
+          axis.title=element_blank()) +
+  scale_x_discrete(labels=c('non-hv', 'hv'))+
+  scale_fill_manual(values=c('#00BFC4',  '#F8766D'))+
+  facet_wrap(vars(accession))
+```
+```{r}
+ggplot(cpg_nlr,
+       aes(x=HV, y=meth_percentage, fill=HV))+
+      geom_violin(lwd=0.25, width=1.2)+
+  geom_boxplot(width=0.1, color='grey', alpha=0.2)+
+  theme_classic()+
+ # ylim(0,100)+
+ # geom_quasirandom(alpha=0.3, size=0.5, varwidth=TRUE)+
+    theme(legend.position='none', text=element_text(size=20)) +
+  scale_x_discrete(labels=c('non-hv', 'hv'))+
+  scale_fill_manual(values=c('#00BFC4',  '#F8766D'))+
+  labs(y='%CG Methylation', x='')
+  #ylab("%CG Methylation")
+
+
+compare_means(meth_percentage~HV, cpg_nlr, method = 'wilcox.test', paired = FALSE)
+
+```
+
+```{r}
+
+```
+
