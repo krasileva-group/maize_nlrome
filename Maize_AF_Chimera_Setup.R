@@ -108,69 +108,6 @@ pdf_ent <- function(entNG,file,refseq){
   ggsave(file)
 }
 
-# #### Running RLP prep steps ----
-# 
-# getwd()
-# if (!dir.exists("AF_RLP")) {dir.create("AF_RLP")}
-# prefix <- "AF_RLP/"    
-# for(clade in RLP_models$Clade%>%unique()){
-#   print(clade)
-#   if (!dir.exists(paste0(prefix,clade))) {dir.create(paste0(prefix,clade))}
-#   clade_dir <- paste0(prefix,clade,"/")  
-#   Uniprot_list <- RLP_models%>%filter(Clade ==clade) %>%select(Uniprot,File)%>%distinct()
-#   for (unip in Uniprot_list$Uniprot){
-#     system2(paste0("wget -O ",clade_dir,unip,".pdb https://alphafold.ebi.ac.uk/files/AF-",unip,"-F1-model_v2.pdb"))
-#   }
-#   list.files(clade_dir)
-#   maa <- readAAMultipleAlignment(paste0(Uniprot_list$File[[1]]))
-#   for (unip in Uniprot_list$Uniprot){
-#         unip
-#         maa@unmasked@ranges@NAMES
-#         ent_ng <- get_ent(maa,unip)
-#         print_ent(ent_ng,paste0(clade_dir,unip,".ChimeraEntropy.txt"))
-#         pdf_ent(ent_ng,paste0(clade_dir,unip,".Entropy.pdf"),unip)
-#   }
-# }
-# 
-# RLP_models %>% select(Clade) %>% distinct() %>%write_csv(path = "RLP_Clade_AF.list",col_names = F)
-# 
-# RLP_Common %>%filter(HV ==1, Ecotype =="Uniprot") %>% group_by(Clade_0)%>%count 
-# 
-# #### Running RLK prep steps ----
-# 
-# getwd()
-# if (!dir.exists("AF_RLK")) {dir.create("AF_RLK")}
-# prefix <- "AF_RLK/"    
-# for(clade in RLK_models$Clade%>%unique()){
-#   print(clade)
-#   if (!dir.exists(paste0(prefix,clade))) {dir.create(paste0(prefix,clade))}
-#   clade_dir <- paste0(prefix,clade,"/")  
-#   Uniprot_list <- RLK_models%>%filter(Clade ==clade) %>%select(Uniprot,File)%>%distinct()
-#   for (unip in Uniprot_list$Uniprot){
-#     system(paste0("wget -O ",clade_dir,unip,".pdb https://alphafold.ebi.ac.uk/files/AF-",unip,"-F1-model_v2.pdb"))
-#   }
-#   list.files(clade_dir)
-#   maa <- readAAMultipleAlignment(paste0(Uniprot_list$File[[1]]))
-#   for (unip in Uniprot_list$Uniprot){
-#     unip
-#     maa@unmasked@ranges@NAMES
-#     ent_ng <- get_ent(maa,unip)
-#     print_ent(ent_ng,paste0(clade_dir,unip,".ChimeraEntropy.txt"))
-#     pdf_ent(ent_ng,paste0(clade_dir,unip,".Entropy.pdf"),unip)
-#   }
-# }
-# 
-# RLK_Common %>%filter(HV ==1, Ecotype =="Uniprot") %>% group_by(Clade_0)%>%count 
-# 
-# # ## For NLR
-# # make a folder
-# # create folders for clades
-# # copy clade alignment
-# # for every uniprot key move pdb to folder
-# # add uniprot to alignment with mafft --add newseq.fa oldseq.afa > allseq.afa
-# # generate entropy file
-# # run chimera script
-
 #### Running NLR prep steps ----
 setwd("~/Dropbox/NLRomes/Maize_NLRome/")
 getwd()
