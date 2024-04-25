@@ -53,25 +53,6 @@ require("gggenomes")
 require(tidyverse)
 library(reticulate)
 
-# Seeing your enviroments
-conda_list()
-
-#Using it
-conda_list()[[1]][1] %>% 
-  use_condaenv(required = TRUE)
-
-gggenomes(emale_genes, emale_seqs, emale_tirs, emale_ava) +
-  geom_seq() + geom_bin_label() +                  # chromosomes and labels
-  geom_feat(size=8) +                              # terminal inverted repeats
-  geom_gene(aes(fill=strand)) + # genes
-  geom_link(offset = 0.15)                         # synteny-blocks
-emale_genes
-emale_seqs%>%print(n=1000)
-emale_tirs
-emale_ava
-
-
-
 
 ##################################################
 #### Trying with maize data -----------

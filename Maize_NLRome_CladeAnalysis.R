@@ -282,30 +282,6 @@ CladeEco_wide <- pivot_wider(CladeEco_long,names_from = Ecotype,values_from = N,
 write_delim(CladeEco_wide, "CladeEco.txt", delim = "\t")
 getwd()
 
-# ##############################################################
-# ### Transfer hvNLR annotation to reference protein models  ---
-# ##############################################################
-# pairs <- read_delim("./ReferenceProteins/pairs.txt",delim = " ", col_names = c("Gene","Ref"))%>%mutate(Gene = Gene %>% str_replace_all("[.]","_")%>%toupper())
-# pairs
-# common_pairs <- left_join(Common,pairs)%>% filter(!is.na(Ref))
-# 
-# 
-# common_pairs %>% filter(HV ==1,Ecotype == "GCF_001433935.1") %>%select(Clade,Chr,Ref) %>% distinct() ->HV_list
-# common_pairs %>% filter(HV == 0, Ecotype == "GCF_001433935.1") %>% select(Clade,Chr,Ref) %>%distinct()%>%
-#   mutate(N=Clade%>%str_remove(".*_")%>%as.integer())%>%filter(N>10)%>%
-#   filter(Ref %in% HV_list$Ref)
-# 
-# 
-# common_pairs %>% select(Ref,Gene,Chr)%>%distinct() %>% arrange(Chr)%>%print(n=1000)
-# common_pairs %>% mutate(ExpChr = Ref %>% str_remove_all("LOC_Os")%>%str_remove("g.*")%>%as.integer())%>%ggplot(aes(x=Chr,y=ExpChr))+geom_density_2d_filled()+xlim(0,12)+ylim(0,12)
-# common_pairs %>% filter(Ecotype == "GCF_001433935.1")  %>%mutate(ExpChr = Ref %>% str_remove_all("LOC_Os")%>%str_remove("g.*")%>%as.integer())%>%ggplot(aes(x=Chr,y=ExpChr))+geom_density_2d_filled()+xlim(0,12)+ylim(0,12)
-# common_pairs %>% filter(Ecotype == "GCF_001433935.1")  %>%mutate(ExpChr = Ref %>% str_remove_all("LOC_Os")%>%str_remove("g.*")%>%as.integer())%>%
-#   group_by(Chr,ExpChr)%>%count%>%print(n=10000)
-# 
-# common_pairs %>% select(Ref,HV,Clade_0) %>% write_delim("Rice_Gene_by_HV.tsv",delim = "\t")
-# 
-# write_delim(common_pairs,"Nipponbarre_Common.txt")
-
 ##############################################################
 ### Produce hvNLR iTOL annotation file---
 ##############################################################
@@ -331,37 +307,3 @@ sink()
 
 
 Common %>% filter(HV == 1) %>% select(Gene)%>% distinct() %>% write_delim("Maize_hvNLR_List.txt",col_names = F)
-##############################################################
-### Produce HV Comparator Tables of clades that have hvNLR ---
-##############################################################
-# 
-# Common %>% filter(HV==1)%>%select(Clade_0) %>% distinct()->HV_Clades
-# HV_Tables <- vector(length = nrow(HV_Clades),mode  = "list")
-# for (ii in seq_along(HV_Clades$Clade_0)){
-#   clade <- HV_Clades$Clade_0[[ii]]
-#   
-#   HV_Tables[[ii]] <- Common %>% filter(Clade_0 == clade, Allele==1, Ecotype == "Athaliana")%>% select(Gene, Clade_0, Clade, HV)
-#   
-# }
-# HV_Table <- HV_Tables[[1]]
-# for (jj in 2:length(HV_Tables)){
-#   HV_Table <- rbind(HV_Table,HV_Tables[[jj]])
-# }
-# HV_Table %>% print(n=100)
-# getwd()
-# write_delim(HV_Table,"~/Dropbox/NLRomes/Atha_NLRome/HV_Comparators.tsv", delim = "\t")
-# Common %>% left_join(genes) -> Common
-# Common %>% filter(Gene =="Athaliana_AT3G50950.1") %>% select (Clade_1)
-# 
-# 
-# 
-# Common %>% filter(HV==1, Ecotype == "Athaliana") %>% arrange(Gene) %>% select(Gene) %>% print(n=40) 
-
-#####################################
-### Get general stats ---------------
-
-Common %>% print (n=100)
-Common %>% group_by(Clade)%>%count
-Common %>% filter(HV==1)%>%group_by(Clade)%>%count
-61+18+23
-Common %>% filter(Gene =="ZM00037AB409540_P001") ## RppC-like sequence
